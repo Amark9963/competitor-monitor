@@ -20,14 +20,14 @@ export function SignificanceBadge({ level }: { level: Significance }) {
 
 export function CategoryChip({ category }: { category: Category }) {
   return (
-    <span className="rounded-full border border-border bg-surface-2 px-2 py-0.5 text-xs text-ink-2">
+    <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent">
       {CATEGORY_LABELS[category] ?? category}
     </span>
   );
 }
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`rounded-lg border border-border bg-surface p-5 ${className}`}>{children}</section>;
+  return <section className={`rounded-xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,18,46,0.04)] ${className}`}>{children}</section>;
 }
 
 export function SectionTitle({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
@@ -42,22 +42,23 @@ export function SectionTitle({ children, action }: { children: React.ReactNode; 
 /** Stat tile: one headline number with a label. No plot, so no hover layer. */
 export function StatTile({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <div className="relative overflow-hidden rounded-xl border border-border bg-surface p-4 shadow-[0_1px_2px_rgba(0,18,46,0.04)]">
+      <span className="absolute inset-x-0 top-0 h-0.5" style={{ background: "linear-gradient(90deg, var(--accent), var(--brand-2))" }} aria-hidden />
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight">{value}</p>
+      <p className="mt-1 text-3xl font-semibold tracking-tight text-ink">{value}</p>
       {hint && <p className="mt-1 text-xs text-ink-2">{hint}</p>}
     </div>
   );
 }
 
 export function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-ink-2">{children}</p>;
+  return <p className="rounded-xl border border-dashed border-border bg-surface p-6 text-center text-sm text-ink-2">{children}</p>;
 }
 
 export function ErrorBox({ message }: { message: string }) {
   const offline = /fetch|network|failed/i.test(message);
   return (
-    <div className="rounded-lg border border-sig-high/40 bg-surface p-4 text-sm">
+    <div className="rounded-xl border border-sig-high/40 bg-surface p-4 text-sm">
       <p className="font-medium text-sig-high">Could not load data</p>
       <p className="mt-1 text-ink-2">{message}</p>
       {offline && (
@@ -89,7 +90,7 @@ export function InsightCard({
   showRun?: boolean;
 }) {
   return (
-    <article className="rounded-lg border border-border bg-surface p-5">
+    <article className="rounded-xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,18,46,0.04)]">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
         <SignificanceBadge level={insight.significance} />
         <CategoryChip category={insight.category} />
@@ -103,11 +104,11 @@ export function InsightCard({
       <h3 className="mt-2 text-base font-semibold leading-snug">{insight.title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-ink-2">{insight.summary}</p>
       <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-        <div className="rounded-md bg-surface-2 p-3">
+        <div className="rounded-lg bg-surface-2 p-3">
           <dt className="text-xs font-medium uppercase tracking-wide text-muted">Implications for us</dt>
           <dd className="mt-1 leading-relaxed">{insight.implications_for_us}</dd>
         </div>
-        <div className="rounded-md bg-surface-2 p-3">
+        <div className="rounded-lg bg-surface-2 p-3">
           <dt className="text-xs font-medium uppercase tracking-wide text-muted">Recommended action</dt>
           <dd className="mt-1 leading-relaxed">{insight.recommended_action}</dd>
         </div>

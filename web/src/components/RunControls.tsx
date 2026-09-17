@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, Competitor, Run, startRun } from "@/lib/api";
 import { announceRunFinished, useApi } from "@/lib/hooks";
+import { IconPlay } from "./icons";
 
 const STAGE_LABEL: Record<string, string> = {
   queued: "Queued",
@@ -59,7 +60,7 @@ export function RunControls() {
   if (running) {
     return (
       <div
-        className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm"
+        className="flex items-center gap-2 rounded-full border border-accent/30 bg-accent-soft px-3 py-1.5 text-sm text-ink"
         role="status"
         aria-live="polite"
       >
@@ -78,17 +79,18 @@ export function RunControls() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink hover:opacity-90"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-accent-ink transition-colors hover:bg-accent-hover"
         aria-haspopup="dialog"
         aria-expanded={open}
       >
+        <IconPlay className="h-4 w-4" />
         Run now
       </button>
       {open && (
         <div
           role="dialog"
           aria-label="Run options"
-          className="absolute right-0 mt-2 w-72 rounded-lg border border-border bg-surface p-4 shadow-lg"
+          className="absolute right-0 mt-2 w-72 rounded-xl border border-border bg-surface p-4 shadow-xl"
         >
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Competitors</p>
           <div className="mb-3 max-h-40 space-y-1 overflow-y-auto">
@@ -119,14 +121,14 @@ export function RunControls() {
           )}
           {error && <p className="mt-2 text-sm text-sig-high">{error}</p>}
           <div className="mt-3 flex justify-end gap-2">
-            <button type="button" onClick={() => setOpen(false)} className="rounded-md px-3 py-1.5 text-sm text-ink-2 hover:bg-surface-2">
+            <button type="button" onClick={() => setOpen(false)} className="rounded-lg px-3 py-1.5 text-sm text-ink-2 hover:bg-surface-2">
               Cancel
             </button>
             <button
               type="button"
               onClick={submit}
               disabled={submitting}
-              className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink disabled:opacity-60"
+              className="rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink hover:bg-accent-hover disabled:opacity-60"
             >
               {submitting ? "Starting…" : "Start run"}
             </button>

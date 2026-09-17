@@ -83,7 +83,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
               <select
                 value={changeFilter}
                 onChange={(e) => setChangeFilter(e.target.value)}
-                className="rounded-md border border-border bg-surface px-2 py-1 text-xs"
+                className="rounded-lg border border-border bg-surface px-2 py-1 text-xs"
                 aria-label="Filter changes by competitor"
               >
                 <option value="">All competitors</option>
@@ -99,7 +99,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
         {visibleChanges.length === 0 ? (
           <Empty>No page changes recorded.</Empty>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-surface">
+          <div className="overflow-hidden rounded-xl border border-border bg-surface">
             {visibleChanges.map((c: Change) => (
               <div key={c.id} className="border-b border-border last:border-b-0">
                 <button
@@ -140,7 +140,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
             {showReport ? "Hide" : "Show"} raw Markdown report
           </button>
           {showReport && (
-            <pre className="mt-2 max-h-[40rem] overflow-auto rounded-lg border border-border bg-surface p-4 text-xs leading-5 whitespace-pre-wrap">
+            <pre className="mt-2 max-h-[40rem] overflow-auto rounded-xl border border-border bg-surface p-4 text-xs leading-5 whitespace-pre-wrap">
               {report.markdown}
             </pre>
           )}

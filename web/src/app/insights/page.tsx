@@ -26,7 +26,7 @@ export default function InsightsPage() {
     return q ? data.filter((i) => [i.title, i.summary, i.implications_for_us].join(" ").toLowerCase().includes(q)) : data;
   }, [data, query]);
 
-  const select = "rounded-md border border-border bg-surface px-2.5 py-1.5 text-sm";
+  const select = "rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-ink";
 
   return (
     <div className="space-y-4">

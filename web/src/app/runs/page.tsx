@@ -24,7 +24,7 @@ export default function RunsPage() {
       ) : !data || data.length === 0 ? (
         <Empty>No runs yet.</Empty>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
           <table className="w-full text-sm">
             <thead className="text-left text-xs text-muted">
               <tr>

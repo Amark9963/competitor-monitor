@@ -108,7 +108,7 @@ export default function DashboardPage() {
                     role="tab"
                     aria-selected={metric === m}
                     onClick={() => setMetric(m)}
-                    className={`rounded-md px-2 py-1 ${metric === m ? "bg-surface-2 text-ink" : "text-ink-2 hover:text-ink"}`}
+                    className={`rounded-md px-2 py-1 ${metric === m ? "bg-accent-soft text-accent" : "text-ink-2 hover:text-ink"}`}
                   >
                     {m === "insights_featured_run" ? (featured ? `Run #${featured.id}` : "Latest") : "All time"}
                   </button>

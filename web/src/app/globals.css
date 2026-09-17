@@ -1,48 +1,63 @@
 @import "tailwindcss";
 
-/* Theme tokens (light). Chart/status values follow the validated reference palette. */
+/*
+ * Brand tokens derived from retellai.com: navy #00122e, brand blue #3e6aef,
+ * lavender page #f5f5fa, border #d9daee, indigo #1a1b45, purple accent #cb62fc.
+ * Significance/status colors follow the validated data-viz palette.
+ */
 :root {
   color-scheme: light;
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --surface-2: #f0efec;
-  --border: rgba(11, 11, 11, 0.1);
-  --grid: #e1e0d9;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --muted: #898781;
-  --accent: #2a78d6;
+  --page: #f5f5fa;
+  --surface: #ffffff;
+  --surface-2: #f2f3fa;
+  --border: #d9daee;
+  --grid: #e6e7f3;
+  --ink: #00122e;
+  --ink-2: #525866;
+  --muted: #717680;
+  --accent: #3e6aef;
+  --accent-hover: #2f58d6;
+  --accent-soft: #e8edfd;
   --accent-ink: #ffffff;
+  --brand-2: #cb62fc;
+  --sidebar: #00122e;
+  --sidebar-2: #0b1f45;
+  --sidebar-ink: #f5f5fa;
+  --sidebar-muted: #99a0ae;
   --sig-high: #d03b3b;
   --sig-medium: #fab219;
-  --sig-low: #898781;
-  --good: #006300;
-  --diff-add-bg: #e6f4e6;
-  --diff-add-ink: #0f5a0f;
+  --sig-low: #99a0ae;
+  --good: #0a7a2f;
+  --diff-add-bg: #e6f4ea;
+  --diff-add-ink: #0f5a2a;
   --diff-del-bg: #fbe7e7;
   --diff-del-ink: #8a1f1f;
-  --diff-hunk: #52514e;
+  --diff-hunk: #525866;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --surface-2: #242423;
+    --page: #030711;
+    --surface: #0b1220;
+    --surface-2: #141c30;
     --border: rgba(255, 255, 255, 0.1);
-    --grid: #2c2c2a;
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --muted: #898781;
-    --accent: #3987e5;
+    --grid: #1f2740;
+    --ink: #f5f5fa;
+    --ink-2: #b6bcc9;
+    --muted: #8a91a3;
+    --accent: #6a8ff5;
+    --accent-hover: #86a4f7;
+    --accent-soft: #172447;
     --accent-ink: #ffffff;
-    --good: #0ca30c;
+    --sidebar: #00122e;
+    --sidebar-2: #0b1f45;
+    --good: #3ccb6a;
     --diff-add-bg: #12301a;
     --diff-add-ink: #9be09b;
     --diff-del-bg: #3a1717;
     --diff-del-ink: #f2a0a0;
-    --diff-hunk: #c3c2b7;
+    --diff-hunk: #b6bcc9;
   }
 }
 
@@ -56,19 +71,35 @@
   --color-ink-2: var(--ink-2);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
+  --color-brand-2: var(--brand-2);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-2: var(--sidebar-2);
+  --color-sidebar-ink: var(--sidebar-ink);
+  --color-sidebar-muted: var(--sidebar-muted);
   --color-sig-high: var(--sig-high);
   --color-sig-medium: var(--sig-medium);
   --color-sig-low: var(--sig-low);
   --color-good: var(--good);
-  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-inter), "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --radius-card: 12px;
+  --radius-btn: 8px;
 }
 
 html,
 body {
   background: var(--page);
   color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-inter), "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
 }
 
 .tabular {
