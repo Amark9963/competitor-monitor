@@ -67,16 +67,15 @@ cd web && npm install && npm run dev          # http://localhost:3000
 
 The UI proxies `/api/*` to the API, so no CORS setup is needed. If the API runs on a different port, start the UI with `API_URL=http://127.0.0.1:<port> npm run dev`. For production, `npm run build && npm start`.
 
-### Deploying the dashboard as a read-only demo (Vercel)
+### Deploying (Render + Vercel)
 
-The Python backend needs a persistent SQLite file and minutes-long Apify runs, so it does not fit serverless hosting. Instead, the UI can ship with a **snapshot** of real data and serve it from its own `/api` routes:
+The backend needs a persistent disk and runs that last minutes, so it lives on **Render**; the UI lives on **Vercel** and proxies `/api/*` to it.
 
-```bash
-python -m competitor_monitor export      # writes web/src/data/snapshot.json from data/monitor.db
-git add web/src/data/snapshot.json && git commit -m "Update demo snapshot" && git push
-```
+**1. Backend on Render** — `render.yaml` is a Blueprint: in Render, *New → Blueprint*, pick this repo, and it creates a web service with a 1 GB disk at `/var/data`. Then in the service's Environment tab set `APIFY_TOKEN` and `ANTHROPIC_API_KEY`, and copy the generated `MONITOR_RUN_TOKEN` — that is the **access code** people must enter to press *Run now* (each run spends paid credits). On first boot the service copies `seed/monitor.db` (a committed snapshot of real runs) onto the disk so the dashboard is populated immediately. Persistent disks need the Starter plan (~$7/mo); the free plan works but loses new runs on restart and sleeps after 15 min idle.
 
-Then on Vercel: **New Project → import the repo → Root Directory: `web`** → Deploy. No environment variables are needed; on Vercel without an `API_URL` the app automatically serves the snapshot (`DEMO_MODE=1` forces it anywhere). The UI shows a "Read-only demo" badge and "Run now" is disabled. Re-run `export` and push whenever you want the demo to reflect new runs.
+**2. UI on Vercel** — *New Project → import repo → Root Directory `web`* and add one environment variable: `API_URL=https://<your-service>.onrender.com`. Redeploy. If the backend is briefly unreachable (e.g. restarting), the UI serves the bundled snapshot with a "Backend reconnecting" badge instead of an error.
+
+**Read-only alternative** — deploy the UI to Vercel *without* `API_URL` and it serves `web/src/data/snapshot.json` in demo mode (no backend at all, *Run now* disabled). Refresh that snapshot with `python -m competitor_monitor export`, then commit and push.
 
 API endpoints: `GET /api/overview`, `/api/runs`, `/api/runs/{id}`, `/api/changes/{id}`, `/api/insights?competitor=&significance=&category=`, `/api/competitors`, `/api/status`, and `POST /api/runs` (`{"competitors": [...], "full": false, "analyze": true}`; 409 if a run is already in progress).
 

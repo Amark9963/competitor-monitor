@@ -7,14 +7,15 @@ from __future__ import annotations
 
 import json
 import logging
+import secrets
 import threading
 from contextlib import asynccontextmanager
 from typing import Iterator
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from .config import Config, Env, load_config, load_env
+from .config import Config, Env, ensure_seeded, load_config, load_env
 from .pipeline import RunOptions, run_pipeline, select_competitors
 from .storage import Store
 
@@ -27,6 +28,8 @@ _active_thread: threading.Thread | None = None
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     env = load_env()
+    if ensure_seeded(env):
+        log.info("seeded database at %s from %s", env.db_path, env.seed_db)
     Store(env.db_path).mark_stale_runs_failed()
     yield
 
@@ -166,9 +169,9 @@ def list_competitors(store: Store = Depends(get_store), config: Config = Depends
 
 
 @app.get("/api/status")
-def status(store: Store = Depends(get_store)) -> dict:
+def status(store: Store = Depends(get_store), env: Env = Depends(get_env)) -> dict:
     running = store.running_run()
-    return {"running": _row(running)}
+    return {"running": _row(running), "requires_token": env.run_token is not None}
 
 
 # ---- trigger a run --------------------------------------------------------
@@ -187,8 +190,13 @@ def start_run(
     store: Store = Depends(get_store),
     config: Config = Depends(get_config),
     env: Env = Depends(get_env),
+    x_run_token: str | None = Header(default=None),
 ) -> dict:
     global _active_thread
+    # Public deployments set MONITOR_RUN_TOKEN so only people with the access code can
+    # start runs (each run spends Apify credits and Claude tokens).
+    if env.run_token and not secrets.compare_digest(x_run_token or "", env.run_token):
+        raise HTTPException(401, "invalid access code")
     try:
         select_competitors(config, body.competitors)
     except ValueError as exc:

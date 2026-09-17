@@ -4,14 +4,17 @@ import snapshot from "@/data/snapshot.json";
 /**
  * /api/* handler.
  *
- * - DEMO_MODE=1 (e.g. Vercel): serve the bundled JSON snapshot exported by
- *   `python -m competitor_monitor export`. Read-only; POST /api/runs is refused.
- * - Otherwise: transparently proxy to the Python API at API_URL.
+ * - Live mode (default): proxy to the Python API at API_URL. If the backend cannot be
+ *   reached (e.g. it is restarting), GET requests fall back to the bundled snapshot so
+ *   the dashboard still renders; the response is flagged `stale: true`.
+ * - Demo mode (DEMO_MODE=1, or Vercel without API_URL): always serve the snapshot.
+ *
+ * The snapshot is produced by `python -m competitor_monitor export`.
  */
 
-// Demo mode is explicit (DEMO_MODE=1) or implied on Vercel when no backend is configured.
 const DEMO = process.env.DEMO_MODE === "1" || (process.env.VERCEL === "1" && !process.env.API_URL);
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
+const UPSTREAM_TIMEOUT_MS = 8000;
 
 type Snapshot = typeof snapshot;
 type Insight = Snapshot["insights"][number];
@@ -20,15 +23,16 @@ function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: { "cache-control": "no-store" } });
 }
 
-function fromSnapshot(path: string[], search: URLSearchParams) {
+function fromSnapshot(path: string[], search: URLSearchParams, mode: "demo" | "stale") {
   const snap = snapshot as Snapshot;
   const [head, id] = path;
+  const flags = mode === "demo" ? { demo: true, exported_at: snap.exported_at } : { stale: true, exported_at: snap.exported_at };
 
   switch (head) {
     case "overview":
-      return json({ ...snap.overview, running: null, demo: true, exported_at: snap.exported_at });
+      return json({ ...snap.overview, running: null, ...flags });
     case "status":
-      return json({ running: null, demo: true, exported_at: snap.exported_at });
+      return json({ running: null, requires_token: false, ...flags });
     case "runs": {
       if (!id) {
         const limit = Number(search.get("limit") ?? 50);
@@ -66,12 +70,17 @@ function fromSnapshot(path: string[], search: URLSearchParams) {
 async function proxy(req: NextRequest, path: string[]) {
   const url = new URL(`/api/${path.join("/")}`, API_URL);
   url.search = req.nextUrl.search;
+  const headers: Record<string, string> = { "content-type": req.headers.get("content-type") ?? "application/json" };
+  const token = req.headers.get("x-run-token");
+  if (token) headers["x-run-token"] = token;
+
   try {
     const upstream = await fetch(url, {
       method: req.method,
-      headers: { "content-type": req.headers.get("content-type") ?? "application/json" },
+      headers,
       body: req.method === "GET" || req.method === "HEAD" ? undefined : await req.text(),
       cache: "no-store",
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     const body = await upstream.text();
     return new NextResponse(body, {
@@ -79,13 +88,14 @@ async function proxy(req: NextRequest, path: string[]) {
       headers: { "content-type": upstream.headers.get("content-type") ?? "application/json", "cache-control": "no-store" },
     });
   } catch {
-    return json({ detail: `Could not reach the API at ${API_URL}. Start it with: python -m competitor_monitor serve` }, 502);
+    if (req.method === "GET") return fromSnapshot(path, req.nextUrl.searchParams, "stale");
+    return json({ detail: "The monitoring backend is not reachable right now. Please try again in a minute." }, 503);
   }
 }
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
-  return DEMO ? fromSnapshot(path, req.nextUrl.searchParams) : proxy(req, path);
+  return DEMO ? fromSnapshot(path, req.nextUrl.searchParams, "demo") : proxy(req, path);
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {

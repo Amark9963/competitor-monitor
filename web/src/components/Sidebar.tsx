@@ -69,13 +69,15 @@ export function Sidebar() {
       <div className="border-t border-white/10 px-5 py-4">
         <div className="rounded-lg bg-white/5 p-3 text-xs">
           <div className="flex items-center gap-2 font-medium text-white">
-            <span className={`inline-block h-2 w-2 rounded-full ${error ? "bg-sig-high" : status?.running ? "animate-pulse bg-accent" : "bg-[#3ccb6a]"}`} aria-hidden />
-            {error ? "API offline" : status?.demo ? "Read-only demo" : status?.running ? "Run in progress" : "All systems normal"}
+            <span className={`inline-block h-2 w-2 rounded-full ${error ? "bg-sig-high" : status?.stale ? "bg-sig-medium" : status?.running ? "animate-pulse bg-accent" : "bg-[#3ccb6a]"}`} aria-hidden />
+            {error ? "API offline" : status?.demo ? "Read-only demo" : status?.stale ? "Backend reconnecting" : status?.running ? "Run in progress" : "All systems normal"}
           </div>
           <p className="mt-1 text-sidebar-muted">
             {status?.demo
               ? "Snapshot of real monitoring runs"
-              : status?.running
+              : status?.stale
+                ? "Showing last exported snapshot"
+                : status?.running
                 ? status.running.progress
                 : last
                   ? `Last run ${timeAgo(last.finished_at ?? last.started_at)}`

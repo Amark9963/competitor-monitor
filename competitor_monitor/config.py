@@ -65,6 +65,10 @@ class Env(BaseModel):
     slack_webhook_url: str | None
     db_path: Path
     reports_dir: Path
+    # Shared secret required by POST /api/runs when set (public deployments).
+    run_token: str | None
+    # Copied to db_path on first start when db_path does not exist yet (fresh disk).
+    seed_db: Path | None
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -84,4 +88,20 @@ def load_env() -> Env:
         slack_webhook_url=os.getenv("SLACK_WEBHOOK_URL") or None,
         db_path=Path(os.getenv("MONITOR_DB_PATH", PROJECT_ROOT / "data" / "monitor.db")),
         reports_dir=Path(os.getenv("MONITOR_REPORTS_DIR", PROJECT_ROOT / "reports")),
+        run_token=os.getenv("MONITOR_RUN_TOKEN") or None,
+        seed_db=Path(os.getenv("MONITOR_SEED_DB")) if os.getenv("MONITOR_SEED_DB") else None,
     )
+
+
+def ensure_seeded(env: Env) -> bool:
+    """Copy the seed database into place if the target does not exist yet. Returns True if copied."""
+    if env.seed_db is None or env.db_path.exists():
+        return False
+    seed = env.seed_db if env.seed_db.is_absolute() else PROJECT_ROOT / env.seed_db
+    if not seed.exists():
+        return False
+    import shutil
+
+    env.db_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(seed, env.db_path)
+    return True

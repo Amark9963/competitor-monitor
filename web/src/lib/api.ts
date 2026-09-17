@@ -148,8 +148,12 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function startRun(body: { competitors?: string[]; full?: boolean; analyze?: boolean }) {
-  return api<{ run_id: number }>("/api/runs", { method: "POST", body: JSON.stringify(body) });
+export function startRun(body: { competitors?: string[]; full?: boolean; analyze?: boolean }, token?: string) {
+  return api<{ run_id: number }>("/api/runs", {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: token ? { "x-run-token": token } : {},
+  });
 }
 
 // ---- formatting helpers ----

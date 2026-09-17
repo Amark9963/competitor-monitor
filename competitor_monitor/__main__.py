@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -104,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p_srv = sub.add_parser("serve", help="start the web API (backend for the dashboard)")
     p_srv.add_argument("--host", default="127.0.0.1")
-    p_srv.add_argument("--port", type=int, default=8000)
+    p_srv.add_argument("--port", type=int, default=int(os.getenv("PORT", "8000")))
     p_srv.add_argument("--reload", action="store_true")
 
     p_exp = sub.add_parser("export", help="write a JSON snapshot of all data for the demo UI")

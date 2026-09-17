@@ -1,0 +1,29 @@
+# Render blueprint: deploys the Python API with a persistent disk for the SQLite state.
+# Dashboard: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: competitor-monitor-api
+    runtime: python
+    plan: starter            # persistent disks require a paid instance; 'free' works but loses data on restart
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m competitor_monitor serve --host 0.0.0.0
+    healthCheckPath: /api/status
+    disk:
+      name: monitor-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: MONITOR_DB_PATH
+        value: /var/data/monitor.db
+      - key: MONITOR_REPORTS_DIR
+        value: /var/data/reports
+      - key: MONITOR_SEED_DB
+        value: seed/monitor.db     # copied to MONITOR_DB_PATH on the very first boot
+      - key: MONITOR_RUN_TOKEN
+        generateValue: true        # access code required to start runs; copy it from the Render dashboard
+      - key: APIFY_TOKEN
+        sync: false                # set in the Render dashboard
+      - key: ANTHROPIC_API_KEY
+        sync: false
