@@ -1,0 +1,8 @@
+# apify-client 2.x/3.x depend on `impit`, a native extension that some locked-down
+# Windows machines block. 1.x is pure Python (httpx) and has the same call surface we use.
+apify-client>=1.12,<2
+anthropic>=1.6
+pydantic>=2.9
+python-dotenv>=1.0
+fastapi>=0.115
+uvicorn>=0.30

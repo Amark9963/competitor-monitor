@@ -1,0 +1,138 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { ApiError, Competitor, Run, startRun } from "@/lib/api";
+import { announceRunFinished, useApi } from "@/lib/hooks";
+
+const STAGE_LABEL: Record<string, string> = {
+  queued: "Queued",
+  scraping: "Scraping",
+  detecting: "Diffing",
+  analyzing: "Analyzing",
+  summarizing: "Summarizing",
+  reporting: "Reporting",
+};
+
+/** "Run now" button with an options popover, plus a live status pill while a run is in progress. */
+export function RunControls() {
+  const { data: status } = useApi<{ running: Run | null }>("/api/status", { refreshMs: 4000 });
+  const { data: competitors } = useApi<Competitor[]>("/api/competitors");
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [full, setFull] = useState(false);
+  const [analyze, setAnalyze] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const wasRunning = useRef(false);
+  const popover = useRef<HTMLDivElement>(null);
+
+  const running = status?.running ?? null;
+
+  // Fire a page-wide refresh when a run transitions from running -> finished.
+  useEffect(() => {
+    if (wasRunning.current && !running) announceRunFinished();
+    wasRunning.current = !!running;
+  }, [running]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (popover.current && !popover.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  async function submit() {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await startRun({ competitors: selected.length ? selected : undefined, full, analyze });
+      setOpen(false);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not start run");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (running) {
+    return (
+      <div
+        className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-sm"
+        role="status"
+        aria-live="polite"
+      >
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
+        </span>
+        <span className="font-medium">{STAGE_LABEL[running.stage ?? ""] ?? "Running"}</span>
+        <span className="hidden text-ink-2 sm:inline">· {running.progress}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative" ref={popover}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink hover:opacity-90"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        Run now
+      </button>
+      {open && (
+        <div
+          role="dialog"
+          aria-label="Run options"
+          className="absolute right-0 mt-2 w-72 rounded-lg border border-border bg-surface p-4 shadow-lg"
+        >
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">Competitors</p>
+          <div className="mb-3 max-h-40 space-y-1 overflow-y-auto">
+            {(competitors ?? []).map((c) => (
+              <label key={c.slug} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(c.slug)}
+                  onChange={(e) =>
+                    setSelected((s) => (e.target.checked ? [...s, c.slug] : s.filter((x) => x !== c.slug)))
+                  }
+                />
+                {c.name}
+              </label>
+            ))}
+            {selected.length === 0 && <p className="text-xs text-muted">None selected = all competitors</p>}
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={analyze} onChange={(e) => setAnalyze(e.target.checked)} />
+            Analyze with Claude
+          </label>
+          <label className="mt-1 flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={full} onChange={(e) => setFull(e.target.checked)} />
+            Full review (all pages, not just changes)
+          </label>
+          {full && analyze && (
+            <p className="mt-1 text-xs text-muted">Sends every tracked page to Claude — slower and costs more.</p>
+          )}
+          {error && <p className="mt-2 text-sm text-sig-high">{error}</p>}
+          <div className="mt-3 flex justify-end gap-2">
+            <button type="button" onClick={() => setOpen(false)} className="rounded-md px-3 py-1.5 text-sm text-ink-2 hover:bg-surface-2">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={submitting}
+              className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink disabled:opacity-60"
+            >
+              {submitting ? "Starting…" : "Start run"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

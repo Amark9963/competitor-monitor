@@ -1,0 +1,66 @@
+{
+  "company": {
+    "name": "Retell AI",
+    "website": "https://www.retellai.com",
+    "profile": "Retell AI is a platform for building, testing, deploying, and monitoring AI voice agents (AI phone agents). Key capabilities: Conversation Flow builder and single/multi-prompt agents, bring-your-own or built-in LLMs, knowledge base, telephony (Twilio, SIP trunking, phone number provisioning), inbound/outbound and batch calling, call transfer, IVR navigation, voicemail detection, post-call analysis, agent testing/simulation, webhooks and APIs, HIPAA/SOC 2 compliance, and usage-based per-minute pricing. Typical customers: contact centers, healthcare, insurance, home services, lead qualification, appointment scheduling."
+  },
+  "competitors": [
+    {
+      "name": "Bland AI",
+      "slug": "bland",
+      "domain": "bland.ai",
+      "pages": [
+        { "url": "https://www.bland.ai/", "type": "homepage", "depth": 0 },
+        { "url": "https://www.bland.ai/pricing", "type": "pricing", "depth": 0 },
+        { "url": "https://www.bland.ai/blog", "type": "blog", "depth": 1 },
+        { "url": "https://www.bland.ai/careers", "type": "careers", "depth": 0 },
+        { "url": "https://docs.bland.ai/changelog", "type": "changelog", "depth": 0 }
+      ]
+    },
+    {
+      "name": "Vapi",
+      "slug": "vapi",
+      "domain": "vapi.ai",
+      "pages": [
+        { "url": "https://vapi.ai/", "type": "homepage", "depth": 0 },
+        { "url": "https://vapi.ai/pricing", "type": "pricing", "depth": 0 },
+        { "url": "https://vapi.ai/blog", "type": "blog", "depth": 1 },
+        { "url": "https://docs.vapi.ai/changelog", "type": "changelog", "depth": 1 }
+      ]
+    },
+    {
+      "name": "Synthflow",
+      "slug": "synthflow",
+      "domain": "synthflow.ai",
+      "pages": [
+        { "url": "https://synthflow.ai/", "type": "homepage", "depth": 0 },
+        { "url": "https://synthflow.ai/pricing", "type": "pricing", "depth": 0 },
+        { "url": "https://synthflow.ai/blog", "type": "blog", "depth": 1 }
+      ]
+    },
+    {
+      "name": "ElevenLabs Agents",
+      "slug": "elevenlabs",
+      "domain": "elevenlabs.io",
+      "pages": [
+        { "url": "https://elevenlabs.io/agents", "type": "features", "depth": 0 },
+        { "url": "https://elevenlabs.io/pricing", "type": "pricing", "depth": 0 },
+        { "url": "https://elevenlabs.io/blog", "type": "blog", "depth": 1 },
+        { "url": "https://elevenlabs.io/docs/changelog", "type": "changelog", "depth": 1 }
+      ]
+    }
+  ],
+  "scraper": {
+    "backend": "apify",
+    "actor_id": "apify/website-content-crawler",
+    "max_pages_per_competitor": 40,
+    "timeout_seconds": 900
+  },
+  "detection": {
+    "min_changed_chars": 120
+  },
+  "analysis": {
+    "model": "claude-opus-5",
+    "effort": "high"
+  }
+}
