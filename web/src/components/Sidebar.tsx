@@ -6,6 +6,7 @@ import { Run, timeAgo } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { IconExternal } from "./icons";
 import { NAV_LINKS, isActive } from "./nav-links";
+import type { StatusResponse } from "./RunControls";
 
 const GROUPS = [
   { label: "Overview", hrefs: ["/", "/insights"] },
@@ -15,7 +16,7 @@ const GROUPS = [
 /** Fixed navy sidebar (desktop). Mobile navigation lives in TopBar. */
 export function Sidebar() {
   const pathname = usePathname();
-  const { data: status, error } = useApi<{ running: Run | null }>("/api/status", { refreshMs: 10000 });
+  const { data: status, error } = useApi<StatusResponse>("/api/status", { refreshMs: 10000 });
   const { data: runs } = useApi<Run[]>("/api/runs?limit=1");
   const last = runs?.[0];
 
@@ -69,10 +70,16 @@ export function Sidebar() {
         <div className="rounded-lg bg-white/5 p-3 text-xs">
           <div className="flex items-center gap-2 font-medium text-white">
             <span className={`inline-block h-2 w-2 rounded-full ${error ? "bg-sig-high" : status?.running ? "animate-pulse bg-accent" : "bg-[#3ccb6a]"}`} aria-hidden />
-            {error ? "API offline" : status?.running ? "Run in progress" : "All systems normal"}
+            {error ? "API offline" : status?.demo ? "Read-only demo" : status?.running ? "Run in progress" : "All systems normal"}
           </div>
           <p className="mt-1 text-sidebar-muted">
-            {status?.running ? status.running.progress : last ? `Last run ${timeAgo(last.finished_at ?? last.started_at)}` : "No runs yet"}
+            {status?.demo
+              ? "Snapshot of real monitoring runs"
+              : status?.running
+                ? status.running.progress
+                : last
+                  ? `Last run ${timeAgo(last.finished_at ?? last.started_at)}`
+                  : "No runs yet"}
           </p>
         </div>
         <p className="mt-3 text-[11px] text-sidebar-muted">Retell AI · Competitive Intelligence</p>

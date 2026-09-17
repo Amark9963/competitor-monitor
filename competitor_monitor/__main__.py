@@ -4,6 +4,7 @@
     python -m competitor_monitor report [RUN_ID]
     python -m competitor_monitor history
     python -m competitor_monitor serve [--port 8000]
+    python -m competitor_monitor export [PATH]      # JSON snapshot for the read-only demo UI
 """
 
 from __future__ import annotations
@@ -64,6 +65,16 @@ def cmd_history(env: Env) -> int:
     return 0
 
 
+def cmd_export(args: argparse.Namespace, env: Env) -> int:
+    from .config import PROJECT_ROOT
+    from .export import export_snapshot
+
+    out = args.path or PROJECT_ROOT / "web" / "src" / "data" / "snapshot.json"
+    snap = export_snapshot(env, Path(out))
+    print(f"wrote {out} ({len(snap['runs'])} runs, {len(snap['insights'])} insights, {len(snap['changes'])} changes)")
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
@@ -96,6 +107,9 @@ def main(argv: list[str] | None = None) -> int:
     p_srv.add_argument("--port", type=int, default=8000)
     p_srv.add_argument("--reload", action="store_true")
 
+    p_exp = sub.add_parser("export", help="write a JSON snapshot of all data for the demo UI")
+    p_exp.add_argument("path", nargs="?", type=Path)
+
     args = parser.parse_args(argv)
     # Reports contain em dashes and emoji; Windows consoles default to a legacy code page.
     for stream in (sys.stdout, sys.stderr):
@@ -107,7 +121,8 @@ def main(argv: list[str] | None = None) -> int:
         datefmt="%H:%M:%S",
         stream=sys.stderr,
     )
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    for name in ("httpx", "httpx2", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)
 
     env = load_env()
     if args.command == "run":
@@ -116,6 +131,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_report(args, env)
     if args.command == "serve":
         return cmd_serve(args)
+    if args.command == "export":
+        return cmd_export(args, env)
     return cmd_history(env)
 
 

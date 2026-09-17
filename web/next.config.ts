@@ -1,13 +1,8 @@
 import type { NextConfig } from "next";
 
-// The Python API (python -m competitor_monitor serve) is proxied under /api so the
-// browser talks to one origin and no CORS configuration is needed.
-const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
-
-const nextConfig: NextConfig = {
-  async rewrites() {
-    return [{ source: "/api/:path*", destination: `${API_URL}/api/:path*` }];
-  },
-};
+// /api/* is handled by src/app/api/[...path]/route.ts: it proxies to the Python API
+// (API_URL, default http://127.0.0.1:8000) or, with DEMO_MODE=1, serves the bundled
+// snapshot so the dashboard can be deployed on its own (e.g. Vercel).
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

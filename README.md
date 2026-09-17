@@ -9,7 +9,7 @@ config/competitors.json ──► Apify Website Content Crawler ──► SQLite
                                                     │
                                      Claude (structured insights + exec summary)
                                                     │
-                                     reports/YYYY-MM-DD_run{N}.md  +  Slack digest
+                                     reports/YYYY-MM-DD_run{N}.md  +  web dashboard
 ```
 
 ## How it works
@@ -67,6 +67,17 @@ cd web && npm install && npm run dev          # http://localhost:3000
 
 The UI proxies `/api/*` to the API, so no CORS setup is needed. If the API runs on a different port, start the UI with `API_URL=http://127.0.0.1:<port> npm run dev`. For production, `npm run build && npm start`.
 
+### Deploying the dashboard as a read-only demo (Vercel)
+
+The Python backend needs a persistent SQLite file and minutes-long Apify runs, so it does not fit serverless hosting. Instead, the UI can ship with a **snapshot** of real data and serve it from its own `/api` routes:
+
+```bash
+python -m competitor_monitor export      # writes web/src/data/snapshot.json from data/monitor.db
+git add web/src/data/snapshot.json && git commit -m "Update demo snapshot" && git push
+```
+
+Then on Vercel: **New Project → import the repo → Root Directory: `web`** → Deploy. No environment variables are needed; on Vercel without an `API_URL` the app automatically serves the snapshot (`DEMO_MODE=1` forces it anywhere). The UI shows a "Read-only demo" badge and "Run now" is disabled. Re-run `export` and push whenever you want the demo to reflect new runs.
+
 API endpoints: `GET /api/overview`, `/api/runs`, `/api/runs/{id}`, `/api/changes/{id}`, `/api/insights?competitor=&significance=&category=`, `/api/competitors`, `/api/status`, and `POST /api/runs` (`{"competitors": [...], "full": false, "analyze": true}`; 409 if a run is already in progress).
 
 ## Configuration — `config/competitors.json`
@@ -102,7 +113,7 @@ Add a competitor by appending an entry — the slug is used as the DB key, so ke
 
 ```
 competitor_monitor/
-  __main__.py   CLI (run / report / history / serve)
+  __main__.py   CLI (run / report / history / serve / export)
   pipeline.py   run orchestration shared by CLI and API, with progress reporting
   api.py        FastAPI backend for the dashboard
   config.py     config + env loading (pydantic)

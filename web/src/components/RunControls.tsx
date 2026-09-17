@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ApiError, Competitor, Run, startRun } from "@/lib/api";
+import { ApiError, Competitor, Run, fmtDate, startRun } from "@/lib/api";
 import { announceRunFinished, useApi } from "@/lib/hooks";
-import { IconPlay } from "./icons";
+import { IconEye, IconPlay } from "./icons";
+
+export interface StatusResponse {
+  running: Run | null;
+  /** Set by the bundled-snapshot API (DEMO_MODE=1): read-only, no live runs. */
+  demo?: boolean;
+  exported_at?: string;
+}
 
 const STAGE_LABEL: Record<string, string> = {
   queued: "Queued",
@@ -16,7 +23,7 @@ const STAGE_LABEL: Record<string, string> = {
 
 /** "Run now" button with an options popover, plus a live status pill while a run is in progress. */
 export function RunControls() {
-  const { data: status } = useApi<{ running: Run | null }>("/api/status", { refreshMs: 4000 });
+  const { data: status } = useApi<StatusResponse>("/api/status", { refreshMs: 4000 });
   const { data: competitors } = useApi<Competitor[]>("/api/competitors");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -55,6 +62,19 @@ export function RunControls() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (status?.demo) {
+    return (
+      <div
+        className="flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs text-ink-2"
+        title="Read-only demo built from a real monitoring run. Live runs need the Python backend."
+      >
+        <IconEye className="h-3.5 w-3.5 text-muted" />
+        <span className="font-medium text-ink">Read-only demo</span>
+        {status.exported_at && <span className="hidden sm:inline">· snapshot {fmtDate(status.exported_at)}</span>}
+      </div>
+    );
   }
 
   if (running) {
