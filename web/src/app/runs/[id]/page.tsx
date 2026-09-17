@@ -2,150 +2,236 @@
 
 import Link from "next/link";
 import { use, useState } from "react";
+import { BriefBody } from "@/components/BriefBody";
 import { DiffView } from "@/components/DiffView";
-import { Card, Empty, ErrorBox, InsightCard, SectionTitle, Skeleton } from "@/components/ui";
+import { IconChevron, IconDownload, IconExternal } from "@/components/icons";
+import { Card, Empty, ErrorBox, Favicon, InsightCard, PageHeader, Skeleton, StatusPill, btn } from "@/components/ui";
 import { Change, Competitor, RunDetail, duration, fmtDate, pathOf } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 
+type Tab = "insights" | "changes" | "report";
+
 export default function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const isRunning = (d: RunDetail | null) => d?.run.status === "running";
   const { data, error, loading } = useApi<RunDetail>(`/api/runs/${id}`, { refreshMs: 5000 });
   const { data: competitors } = useApi<Competitor[]>("/api/competitors");
+  const [tab, setTab] = useState<Tab>("insights");
   const [openChange, setOpenChange] = useState<number | null>(null);
-  const [showReport, setShowReport] = useState(false);
   const [changeFilter, setChangeFilter] = useState("");
 
   if (error) return <ErrorBox message={error} />;
   if (loading || !data) return <Skeleton lines={6} />;
 
   const { run, report, insights, changes } = data;
-  const nameOf = Object.fromEntries((competitors ?? []).map((c) => [c.slug, c.name]));
+  const running = run.status === "running";
+  const byslug = Object.fromEntries((competitors ?? []).map((c) => [c.slug, c]));
   const slugs = Array.from(new Set(changes.map((c) => c.competitor)));
   const visibleChanges = changeFilter ? changes.filter((c) => c.competitor === changeFilter) : changes;
   const executive = report?.executive;
+  const high = insights.filter((i) => i.significance === "high").length;
+
+  function downloadReport() {
+    if (!report) return;
+    const blob = new Blob([report.markdown], { type: "text/markdown;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `competitor-report-run${run.id}.md`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: "insights", label: "Insights", count: insights.length },
+    { key: "changes", label: "Page changes", count: changes.length },
+    { key: "report", label: "Report" },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link href="/runs" className="text-xs text-muted hover:text-ink">← All runs</Link>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Run #{run.id}</h1>
-        <p className="mt-1 text-sm text-ink-2">
-          {fmtDate(run.started_at)} · {run.mode === "full" ? "full review" : "changes only"} ·{" "}
-          <span className={run.status === "failed" ? "text-sig-high" : run.status === "running" ? "text-accent" : "text-good"}>
-            {run.status}
+    <div>
+      <PageHeader
+        eyebrow={<Link href="/runs" className="hover:text-ink">← Runs</Link>}
+        title={
+          <span className="flex items-center gap-3">
+            Run #{run.id} <StatusPill status={run.status} />
           </span>
-          {run.finished_at && <> in {duration(run.started_at, run.finished_at)}</>}
-          {isRunning(data) && run.progress && <> · {run.progress}</>}
-        </p>
-        {run.error && <p className="mt-2 rounded-md border border-sig-high/40 p-3 text-sm text-sig-high">{run.error}</p>}
+        }
+        description={
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>{fmtDate(run.started_at)}</span>
+            <span className="text-muted">·</span>
+            <span>{run.mode === "full" ? "Full review" : "Changes only"}</span>
+            {run.finished_at && (
+              <>
+                <span className="text-muted">·</span>
+                <span>{duration(run.started_at, run.finished_at)}</span>
+              </>
+            )}
+            {running && run.progress && (
+              <>
+                <span className="text-muted">·</span>
+                <span className="text-accent">{run.progress}</span>
+              </>
+            )}
+          </span>
+        }
+        actions={
+          report && (
+            <button type="button" onClick={downloadReport} className={btn.secondary}>
+              <IconDownload className="h-4 w-4" /> Export .md
+            </button>
+          )
+        }
+      />
+
+      {run.error && (
+        <div className="mb-6 rounded-xl border border-sig-high/40 bg-surface p-4 text-sm text-sig-high">{run.error}</div>
+      )}
+
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          { label: "Insights", value: insights.length },
+          { label: "High significance", value: high },
+          { label: "Page changes", value: changes.length },
+          { label: "Competitors", value: slugs.length },
+        ].map((m) => (
+          <div key={m.label} className="rounded-xl border border-border bg-surface px-4 py-3 shadow-[0_1px_2px_rgba(0,18,46,0.05)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">{m.label}</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-ink">{m.value}</p>
+          </div>
+        ))}
       </div>
 
       {executive && (
-        <Card>
-          <SectionTitle>Executive summary</SectionTitle>
-          <p className="text-lg font-semibold leading-snug">{executive.headline}</p>
-          <div className="mt-3 space-y-3 text-sm leading-relaxed text-ink-2">
-            {executive.summary.split(/\n{2,}/).map((p, i) => (
-              <p key={i}>{p.replace(/\*\*/g, "")}</p>
-            ))}
-          </div>
-          {executive.watch_list.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Watch list</p>
-              <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-                {executive.watch_list.map((w, i) => (
-                  <li key={i}>{w}</li>
-                ))}
-              </ul>
+        <Card className="mb-6" title="Executive summary" description={`Generated from ${insights.length} insights`}>
+          <p className="text-[17px] font-semibold leading-snug tracking-tight text-ink">{executive.headline}</p>
+          <div className="mt-4 grid gap-6 lg:grid-cols-5">
+            <div className="lg:col-span-3">
+              <BriefBody text={executive.summary} initial={3} />
             </div>
-          )}
+            {executive.watch_list.length > 0 && (
+              <div className="rounded-lg border border-border bg-surface-2/60 p-4 lg:col-span-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Watch list</p>
+                <ol className="mt-2 space-y-2.5">
+                  {executive.watch_list.map((w, i) => (
+                    <li key={i} className="flex gap-3 text-[13px] leading-snug text-ink">
+                      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-semibold text-accent">{i + 1}</span>
+                      {w}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </div>
         </Card>
       )}
 
-      <div>
-        <SectionTitle>Insights ({insights.length})</SectionTitle>
-        {insights.length === 0 ? (
-          <Empty>{isRunning(data) ? "Analysis in progress…" : "No insights for this run."}</Empty>
+      <div className="mb-4 flex gap-1 border-b border-border" role="tablist">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => setTab(t.key)}
+            className={`-mb-px inline-flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium ${
+              tab === t.key ? "border-accent text-ink" : "border-transparent text-ink-2 hover:text-ink"
+            }`}
+          >
+            {t.label}
+            {t.count !== undefined && (
+              <span className={`rounded-full px-1.5 text-[11px] ${tab === t.key ? "bg-accent-soft text-accent" : "bg-surface-2 text-muted"}`}>{t.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {tab === "insights" &&
+        (insights.length === 0 ? (
+          <Empty>{running ? "Analysis in progress…" : "No insights for this run."}</Empty>
         ) : (
           <div className="grid gap-4">
             {insights.map((i) => (
-              <InsightCard key={i.id} insight={i} competitorName={nameOf[i.competitor] ?? i.competitor} />
+              <InsightCard key={i.id} insight={i} competitor={byslug[i.competitor]} />
             ))}
           </div>
-        )}
-      </div>
+        ))}
 
-      <div>
-        <SectionTitle
+      {tab === "changes" && (
+        <Card
+          padded={false}
+          title="Page changes"
+          description="Click a row to see exactly what changed"
           action={
             slugs.length > 1 && (
               <select
                 value={changeFilter}
                 onChange={(e) => setChangeFilter(e.target.value)}
-                className="rounded-lg border border-border bg-surface px-2 py-1 text-xs"
+                className="h-8 rounded-lg border border-border bg-surface px-2 text-xs"
                 aria-label="Filter changes by competitor"
               >
                 <option value="">All competitors</option>
                 {slugs.map((s) => (
-                  <option key={s} value={s}>{nameOf[s] ?? s}</option>
+                  <option key={s} value={s}>{byslug[s]?.name ?? s}</option>
                 ))}
               </select>
             )
           }
         >
-          Page changes ({changes.length})
-        </SectionTitle>
-        {visibleChanges.length === 0 ? (
-          <Empty>No page changes recorded.</Empty>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-surface">
-            {visibleChanges.map((c: Change) => (
-              <div key={c.id} className="border-b border-border last:border-b-0">
-                <button
-                  type="button"
-                  onClick={() => setOpenChange((o) => (o === c.id ? null : c.id))}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-surface-2"
-                  aria-expanded={openChange === c.id}
-                >
-                  <span
-                    className={`w-14 shrink-0 rounded px-1.5 py-0.5 text-center text-xs font-medium ${
-                      c.change_type === "new" ? "bg-accent/15 text-accent" : "bg-surface-2 text-ink-2"
-                    }`}
-                  >
-                    {c.change_type}
-                  </span>
-                  <span className="w-28 shrink-0 text-xs text-muted">{nameOf[c.competitor] ?? c.competitor}</span>
-                  <span className="w-20 shrink-0 text-xs text-muted">{c.page_type}</span>
-                  <span className="min-w-0 flex-1 truncate" title={c.url}>{c.title || pathOf(c.url)}</span>
-                  <span className="tabular shrink-0 text-xs text-muted">{c.changed_chars.toLocaleString()} chars</span>
-                </button>
-                {openChange === c.id && (
-                  <div className="px-4 pb-4">
-                    <a href={c.url} target="_blank" rel="noreferrer" className="mb-2 inline-block text-xs text-accent hover:underline">
-                      {c.url}
-                    </a>
-                    <DiffView changeId={c.id} changeType={c.change_type} />
+          {visibleChanges.length === 0 ? (
+            <p className="p-5 text-sm text-ink-2">No page changes recorded.</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {visibleChanges.map((c: Change) => {
+                const comp = byslug[c.competitor];
+                const open = openChange === c.id;
+                return (
+                  <div key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenChange(open ? null : c.id)}
+                      className="flex w-full items-center gap-3 px-5 py-2.5 text-left text-sm hover:bg-surface-2/60"
+                      aria-expanded={open}
+                    >
+                      <IconChevron className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? "rotate-90" : ""}`} />
+                      <span
+                        className={`w-16 shrink-0 rounded-full px-2 py-0.5 text-center text-[11px] font-semibold ring-1 ring-inset ${
+                          c.change_type === "new" ? "bg-accent-soft text-accent ring-accent/30" : "bg-surface-2 text-ink-2 ring-border"
+                        }`}
+                      >
+                        {c.change_type === "new" ? "New" : "Changed"}
+                      </span>
+                      {comp && (
+                        <span className="hidden w-32 shrink-0 items-center gap-1.5 text-xs text-ink-2 sm:flex">
+                          <Favicon domain={comp.domain} name={comp.name} size={16} /> {comp.name}
+                        </span>
+                      )}
+                      <span className="w-20 shrink-0 text-xs capitalize text-muted">{c.page_type}</span>
+                      <span className="min-w-0 flex-1 truncate text-ink" title={c.url}>{c.title || pathOf(c.url)}</span>
+                      <span className="tabular shrink-0 text-xs text-muted">{c.changed_chars.toLocaleString()} chars</span>
+                    </button>
+                    {open && (
+                      <div className="bg-surface-2/40 px-5 pb-4 pt-1">
+                        <a href={c.url} target="_blank" rel="noreferrer" className="mb-2 inline-flex items-center gap-1 text-xs text-accent hover:underline">
+                          {c.url} <IconExternal className="h-3 w-3" />
+                        </a>
+                        <DiffView changeId={c.id} changeType={c.change_type} />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {report && (
-        <div>
-          <button type="button" onClick={() => setShowReport((s) => !s)} className="text-sm text-accent hover:underline">
-            {showReport ? "Hide" : "Show"} raw Markdown report
-          </button>
-          {showReport && (
-            <pre className="mt-2 max-h-[40rem] overflow-auto rounded-xl border border-border bg-surface p-4 text-xs leading-5 whitespace-pre-wrap">
-              {report.markdown}
-            </pre>
+                );
+              })}
+            </div>
           )}
-        </div>
+        </Card>
       )}
+
+      {tab === "report" &&
+        (report ? (
+          <Card title="Markdown report" description="Same content as the file written to reports/" action={<button type="button" onClick={downloadReport} className={btn.link}>Download</button>}>
+            <pre className="max-h-[48rem] overflow-auto whitespace-pre-wrap text-xs leading-5 text-ink-2">{report.markdown}</pre>
+          </Card>
+        ) : (
+          <Empty>No report stored for this run.</Empty>
+        ))}
     </div>
   );
 }
